@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"></meta>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"></meta>
+    <title>Anonymous Chat</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.6.0/css/bootstrap.min.css}"></link>
+    
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .chat-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 300;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .message.own {
+            text-align: right;
+        }
+
+        .message.other {
+            text-align: left;
+        }
+
+        .message.system {
+            text-align: center;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.own .message-bubble {
+            background: #007bff;
+            color: white;
+        }
+
+        .message.other .message-bubble {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .message.system .message-bubble {
+            background: #28a745;
+            color: white;
+            font-style: italic;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .typing-indicator {
+            text-align: left;
+            margin-bottom: 10px;
+            font-style: italic;
+            color: #6c757d;
+            animation: pulse 1.5s infinite;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            color: white;
+        }
+
+        .btn-new-partner {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            border: none;
+            color: white;
+        }
+
+        .connection-status {
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+
+        .status-connected { background: #d4edda; color: #155724; }
+        .status-waiting { background: #fff3cd; color: #856404; }
+        .status-disconnected { background: #f8d7da; color: #721c24; }
+
+        .online-count {
+            float: right;
+            color: #6c757d;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .chat-container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .chat-messages {
+                height: 350px;
+            }
+            
+            .message-bubble {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="chat-container">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <h1>🎭 Anonymous Chat</h1>
+                <p class="mb-0">Connect with strangers anonymously</p>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span id="connectionStatus" class="connection-status status-disconnected">
+                    Connecting...
+                </span>
+                <span class="online-count">
+                    Online: <span id="onlineCount">0</span>
+                </span>
+            </div>
+
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="chat-messages">
+                <div class="message system">
+                    <div class="message-bubble">
+                        Welcome to Anonymous Chat! Connecting you to the chat service...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typingIndicator" class="typing-indicator" style="display: none;">
+                <div style="padding: 0 20px;">
+                    Your partner is typing...
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="chat-input-container">
+                <div class="input-group">
+                    <input type="text" 
+                           id="messageInput" 
+                           class="form-control" 
+                           placeholder="Type your message here..." 
+                           maxlength="500"
+                           disabled="disabled"></input>
+                    <div class="input-group-append">
+                        <button id="sendButton" class="btn btn-send" type="button" disabled="disabled">
+                            Send
+                        </button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <button id="newPartnerButton" class="btn btn-new-partner btn-block" disabled="disabled">
+                            Find New Partner
+                        </button>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted">
+                            Press Enter to send • Be respectful
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script th:src="@{/webjars/jquery/3.6.0/jquery.min.js}"></script>
+    <script th:src="@{/webjars/bootstrap/4.6.0/js/bootstrap.min.js}"></script>
+    <script th:src="@{/webjars/sockjs-client/1.0.2/sockjs.min.js}"></script>
+    <script th:src="@{/webjars/stomp-websocket/2.3.3/stomp.min.js}"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        /*<![CDATA[*/
+        let stompClient = null;
+        let connected = false;
+        let currentUserId = null;
+        let isTyping = false;
+        let typingTimeout = null;
+
+        // DOM Elements
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const newPartnerButton = document.getElementById('newPartnerButton');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const onlineCount = document.getElementById('onlineCount');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Initialize
+        $(document).ready(function() {
+            connect();
+            setupEventListeners();
+            updateOnlineCount();
+        });
+
+        function connect() {
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            
+            // Disable console logging
+            stompClient.debug = null;
+
+            stompClient.connect({}, function(frame) {
+                console.log('Connected: ' + frame);
+                connected = true;
+                updateConnectionStatus('connected', 'Connected');
+                
+                // Subscribe to private messages
+                stompClient.subscribe('/user/queue/messages', function(message) {
+                    handleMessage(JSON.parse(message.body));
+                });
+
+                // Enable Find New Partner button and set initial state
+                newPartnerButton.disabled = false;
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+                updateConnectionStatus('waiting', 'Click "Find New Partner" to start chatting');
+            }, function(error) {
+                console.log('Connection error: ' + error);
+                connected = false;
+                updateConnectionStatus('disconnected', 'Connection failed');
+                
+                // Retry connection after 3 seconds
+                setTimeout(connect, 3000);
+            });
+        }
+
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.disconnect();
+            }
+            connected = false;
+            updateConnectionStatus('disconnected', 'Disconnected');
+            disableControls();
+        }
+
+        function sendMessage() {
+            const content = messageInput.value.trim();
+            if (content === '' || !connected) {
+                return;
+            }
+
+            const message = {
+                content: content,
+                type: 'CHAT'
+            };
+
+            stompClient.send("/app/chat.send", {}, JSON.stringify(message));
+            
+            // Display own message
+            displayMessage({
+                content: content,
+                sender: 'You',
+                type: 'CHAT',
+                timestamp: Date.now()
+            }, true);
+
+            messageInput.value = '';
+            messageInput.focus();
+        }
+
+        function sendTypingIndicator() {
+            if (connected && !isTyping) {
+                stompClient.send("/app/chat.typing", {}, {});
+                isTyping = true;
+                
+                // Reset typing flag after 3 seconds
+                setTimeout(() => {
+                    isTyping = false;
+                }, 3000);
+            }
+        }
+
+        function findNewPartner() {
+            if (connected) {
+                stompClient.send("/app/chat.findNew", {}, {});
+                clearMessages();
+                hideTypingIndicator();
+                updateConnectionStatus('waiting', 'Looking for new partner...');
+                // Keep Find New Partner button enabled, disable chat until paired
+                newPartnerButton.disabled = false;
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+            }
+        }
+
+        function handleMessage(message) {
+            console.log('Received message:', message);
+
+            switch(message.type) {
+                case 'USER_PAIRED':
+                    updateConnectionStatus('connected', 'Connected to partner');
+                    displaySystemMessage(message.content);
+                    enableControls();
+                    break;
+                
+                case 'WAITING':
+                    updateConnectionStatus('waiting', 'Looking for partner...');
+                    displaySystemMessage(message.content);
+                    // Keep Find New Partner button enabled when waiting
+                    newPartnerButton.disabled = false;
+                    // But disable chat input until paired
+                    messageInput.disabled = true;
+                    sendButton.disabled = true;
+                    break;
+                
+                case 'DISCONNECT':
+                    updateConnectionStatus('waiting', 'Partner disconnected');
+                    displaySystemMessage(message.content);
+                    hideTypingIndicator();
+                    // Keep Find New Partner button enabled when partner disconnects
+                    newPartnerButton.disabled = false;
+                    // But disable chat input until new partner found
+                    messageInput.disabled = true;
+                    sendButton.disabled = true;
+                    break;
+                
+                case 'CHAT':
+                    displayMessage(message, false);
+                    playNotificationSound();
+                    break;
+                
+                case 'TYPING':
+                    showTypingIndicator();
+                    break;
+                
+                case 'ERROR':
+                    displaySystemMessage(message.content, 'error');
+                    break;
+            }
+        }
+
+        function displayMessage(message, isOwn) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = message.content;
+
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = formatTime(message.timestamp);
+
+            messageDiv.appendChild(bubble);
+            messageDiv.appendChild(time);
+            chatMessages.appendChild(messageDiv);
+            
+            scrollToBottom();
+        }
+
+        function displaySystemMessage(content, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = content;
+
+            messageDiv.appendChild(bubble);
+            chatMessages.appendChild(messageDiv);
+            
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'block';
+            scrollToBottom();
+            
+            // Hide after 3 seconds
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(hideTypingIndicator, 3000);
+        }
+
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function updateConnectionStatus(status, text) {
+            connectionStatus.className = `connection-status status-${status}`;
+            connectionStatus.textContent = text;
+        }
+
+        function enableControls() {
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            newPartnerButton.disabled = false;
+            messageInput.focus();
+        }
+
+        function disableControls() {
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+            newPartnerButton.disabled = true;
+        }
+
+        function clearMessages() {
+            chatMessages.innerHTML = '';
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        function playNotificationSound() {
+            // Create a simple beep sound
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+            } catch (e) {
+                // Audio not supported or blocked
+            }
+        }
+
+        function updateOnlineCount() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    onlineCount.textContent = data.onlineUsers;
+                })
+                .catch(error => {
+                    console.log('Error fetching stats:', error);
+                });
+            
+            // Update every 30 seconds
+            setTimeout(updateOnlineCount, 30000);
+        }
+
+        function setupEventListeners() {
+            // Send message on Enter key
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Send typing indicator
+            messageInput.addEventListener('input', function() {
+                sendTypingIndicator();
+            });
+
+            // Send button click
+            sendButton.addEventListener('click', sendMessage);
+
+            // New partner button click
+            newPartnerButton.addEventListener('click', findNewPartner);
+
+            // Handle page unload
+            window.addEventListener('beforeunload', function() {
+                if (connected) {
+                    disconnect();
+                }
+            });
+
+            // Handle visibility change (tab switching)
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    // Tab is now hidden
+                } else {
+                    // Tab is now visible
+                    scrollToBottom();
+                }
+            });
+        }
+
+        // Show browser notification for new messages (when tab is not active)
+        function showBrowserNotification(message) {
+            if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+                const notification = new Notification('New message in Anonymous Chat', {
+                    body: message.content.substring(0, 100),
+                    icon: '/favicon.ico'
+                });
+                
+                setTimeout(() => {
+                    notification.close();
+                }, 5000);
+            }
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    //]]>
+    </script>
+</body>
+</html>
