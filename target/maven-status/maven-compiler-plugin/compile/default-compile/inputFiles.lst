@@ -1,8 +1,0 @@
-/home/runner/work/java-a.8-chat-application/java-a.8-chat-application/src/main/java/com/example/anonymouschat/AnonymousChatApplication.java
-/home/runner/work/java-a.8-chat-application/java-a.8-chat-application/src/main/java/com/example/anonymouschat/config/SchedulingConfig.java
-/home/runner/work/java-a.8-chat-application/java-a.8-chat-application/src/main/java/com/example/anonymouschat/config/WebSocketConfig.java
-/home/runner/work/java-a.8-chat-application/java-a.8-chat-application/src/main/java/com/example/anonymouschat/controller/ChatController.java
-/home/runner/work/java-a.8-chat-application/java-a.8-chat-application/src/main/java/com/example/anonymouschat/controller/WebController.java
-/home/runner/work/java-a.8-chat-application/java-a.8-chat-application/src/main/java/com/example/anonymouschat/model/ChatMessage.java
-/home/runner/work/java-a.8-chat-application/java-a.8-chat-application/src/main/java/com/example/anonymouschat/model/ChatUser.java
-/home/runner/work/java-a.8-chat-application/java-a.8-chat-application/src/main/java/com/example/anonymouschat/service/ChatService.java

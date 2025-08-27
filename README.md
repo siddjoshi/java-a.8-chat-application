@@ -1,6 +1,6 @@
 # Anonymous Chat Application
 
-A real-time anonymous chat application built with Java 1.8 and Spring Boot that allows two users to chat anonymously with each other.
+A real-time anonymous chat application built with Java 21 and Spring Boot 3.4.1 that allows two users to chat anonymously with each other.
 
 ## Features
 
@@ -14,8 +14,8 @@ A real-time anonymous chat application built with Java 1.8 and Spring Boot that 
 
 ## Technologies Used
 
-- **Java 1.8**
-- **Spring Boot 1.5.22**
+- **Java 21**
+- **Spring Boot 3.4.1**
 - **Spring WebSocket & STOMP**
 - **Thymeleaf** for templating
 - **H2 Database** (in-memory)
@@ -27,8 +27,8 @@ A real-time anonymous chat application built with Java 1.8 and Spring Boot that 
 
 ### Prerequisites
 
-- Java 1.8 or higher
-- Maven 3.3+
+- Java 21 or higher
+- Maven 3.6+
 
 ### Installation & Running
 
